@@ -1,0 +1,21 @@
+{
+  "name": "azure-tts-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for Microsoft Azure Text-to-Speech (Spanish neural voices)",
+  "type": "module",
+  "main": "index.js",
+  "bin": {
+    "azure-tts-mcp": "index.js"
+  },
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "microsoft-cognitiveservices-speech-sdk": "^1.50.0",
+    "zod": "^3.25.0"
+  }
+}

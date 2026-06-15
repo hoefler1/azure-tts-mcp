@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "azure-tts": {
+      "command": "node",
+      "args": ["/ABSOLUTER/PFAD/zu/azure-tts-mcp/index.js"],
+      "env": {
+        "AZURE_SPEECH_KEY": "DEIN_AZURE_SPEECH_KEY",
+        "AZURE_SPEECH_REGION": "westeurope"
+      }
+    }
+  }
+}
