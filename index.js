@@ -55,8 +55,14 @@ const SPANISH_VOICES = [
   "es-US-PalomaNeural", // female
   "es-US-AlonsoNeural", // male
 ];
+const THAI_VOICES = [
+  "th-TH-PremwadeeNeural",
+  "th-TH-NiwatNeural",
+  "th-TH-AcharaNeural"
+];
 
-const DEFAULT_VOICE = "es-ES-ElviraNeural";
+const ES_DEFAULT_VOICE = "es-ES-ElviraNeural";
+const TH_DEFAULT_VOICE = "th-TH-PremwadeeNeural";
 
 // --- Core synthesis --------------------------------------------------------
 
@@ -68,6 +74,76 @@ const server = new McpServer({
   name: "azure-tts-mcp",
   version: "1.0.0",
 });
+
+function doExecuteCall() {
+  return async ({ text, voice, format, outputPath }) => {
+      if (!AZURE_SPEECH_KEY || !AZURE_SPEECH_REGION) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: "Azure credentials are not configured. Set AZURE_SPEECH_KEY and " +
+                "AZURE_SPEECH_REGION in the MCP server environment.",
+            },
+          ],
+        };
+      }
+
+      const chosenVoice = voice || ES_DEFAULT_VOICE;
+      const chosenFormat = format || "mp3";
+
+      // Resolve the destination path.
+      let target;
+      if (outputPath) {
+        target = path.resolve(outputPath);
+      } else {
+        const stamp = new Date()
+          .toISOString()
+          .replace(/[:.]/g, "-")
+          .replace("T", "_")
+          .replace("Z", "");
+        target = path.join(
+          DEFAULT_OUTPUT_DIR,
+          `speech_${stamp}.${chosenFormat}`
+        );
+      }
+
+      // Ensure the parent directory exists.
+      const dir = path.dirname(target);
+      if (!existsSync(dir)) {
+        await mkdir(dir, { recursive: true });
+      }
+
+      try {
+        const written = await synthesizeToFile({
+          text,
+          voice: chosenVoice,
+          outputPath: target,
+          format: chosenFormat,
+        });
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Audio written to: ${written}\n` +
+                `Voice: ${chosenVoice} | Format: ${chosenFormat}`,
+            },
+          ],
+        };
+      } catch (err) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: `Text-to-speech failed: ${err instanceof Error ? err.message : String(err)}`,
+            },
+          ],
+        };
+      }
+    };
+}
 
 server.registerTool(
   "speak_spanish",
@@ -86,7 +162,7 @@ server.registerTool(
         .enum(SPANISH_VOICES)
         .optional()
         .describe(
-          `Spanish neural voice to use. Defaults to ${DEFAULT_VOICE}.`
+          `Spanish neural voice to use. Defaults to ${ES_DEFAULT_VOICE}.`
         ),
       format: z
         .enum(["mp3", "wav"])
@@ -101,77 +177,42 @@ server.registerTool(
         ),
     },
   },
-  async ({ text, voice, format, outputPath }) => {
-    if (!AZURE_SPEECH_KEY || !AZURE_SPEECH_REGION) {
-      return {
-        isError: true,
-        content: [
-          {
-            type: "text",
-            text:
-              "Azure credentials are not configured. Set AZURE_SPEECH_KEY and " +
-              "AZURE_SPEECH_REGION in the MCP server environment.",
-          },
-        ],
-      };
-    }
+  doExecuteCall()
+);
 
-    const chosenVoice = voice || DEFAULT_VOICE;
-    const chosenFormat = format || "mp3";
-
-    // Resolve the destination path.
-    let target;
-    if (outputPath) {
-      target = path.resolve(outputPath);
-    } else {
-      const stamp = new Date()
-        .toISOString()
-        .replace(/[:.]/g, "-")
-        .replace("T", "_")
-        .replace("Z", "");
-      target = path.join(
-        DEFAULT_OUTPUT_DIR,
-        `speech_${stamp}.${chosenFormat}`
-      );
-    }
-
-    // Ensure the parent directory exists.
-    const dir = path.dirname(target);
-    if (!existsSync(dir)) {
-      await mkdir(dir, { recursive: true });
-    }
-
-    try {
-      const written = await synthesizeToFile({
-        text,
-        voice: chosenVoice,
-        outputPath: target,
-        format: chosenFormat,
-      });
-      return {
-        content: [
-          {
-            type: "text",
-            text:
-              `Audio written to: ${written}\n` +
-              `Voice: ${chosenVoice} | Format: ${chosenFormat}`,
-          },
-        ],
-      };
-    } catch (err) {
-      return {
-        isError: true,
-        content: [
-          {
-            type: "text",
-            text: `Text-to-speech failed: ${
-              err instanceof Error ? err.message : String(err)
-            }`,
-          },
-        ],
-      };
-    }
-  }
+server.registerTool(
+  "speak_thai",
+  {
+    title: "Thai Text-to-Speech (Azure)",
+    description:
+      "Synthesize Thai text into a neural-voice audio file using Microsoft " +
+      "Azure Text-to-Speech. Returns the absolute path of the written file. " +
+      "Default voice is th-TH-PremwadeeNeural.",
+    inputSchema: {
+      text: z
+        .string()
+        .min(1)
+        .describe("The Thai text to synthesize into speech."),
+      voice: z
+        .enum(THAI_VOICES)
+        .optional()
+        .describe(
+          `Thai neural voice to use. Defaults to ${TH_DEFAULT_VOICE}.`
+        ),
+      format: z
+        .enum(["mp3", "wav"])
+        .optional()
+        .describe("Audio container. Defaults to mp3."),
+      outputPath: z
+        .string()
+        .optional()
+        .describe(
+          "Absolute path for the output file. If omitted, a timestamped " +
+            "file is written into the configured output directory."
+        ),
+    },
+  },
+  doExecuteCall()
 );
 
 // --- Start -----------------------------------------------------------------
