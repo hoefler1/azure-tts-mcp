@@ -1,14 +1,5 @@
 import * as sdk from "microsoft-cognitiveservices-speech-sdk";
-
-// Escape the five XML special characters so arbitrary text is safe inside SSML.
-function escapeXml(str) {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
-}
+import * as xmlEscaper from "./xmlEscaper.ts"
 
 // Derive the locale (e.g. "es-ES") from a voice name like "es-ES-ElviraNeural".
 function localeFromVoice(voice) {
@@ -23,7 +14,7 @@ function buildSsml({ text, voice, rate }) {
   return (
     `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${locale}">` +
     `<voice name="${voice}">` +
-    `<prosody rate="${rate}">${escapeXml(text)}</prosody>` +
+    `<prosody rate="${rate}">${xmlEscaper.escape(text)}</prosody>` +
     `</voice></speak>`
   );
 }
