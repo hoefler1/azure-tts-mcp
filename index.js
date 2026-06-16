@@ -75,8 +75,8 @@ const server = new McpServer({
   version: "1.0.0",
 });
 
-function doExecuteCall() {
-  return async ({ text, voice, format, outputPath }) => {
+function doExecuteCall(defaultVoice) {
+  return async ({ text, voice, format, outputPath, rate }) => {
       if (!AZURE_SPEECH_KEY || !AZURE_SPEECH_REGION) {
         return {
           isError: true,
@@ -90,7 +90,7 @@ function doExecuteCall() {
         };
       }
 
-      const chosenVoice = voice || ES_DEFAULT_VOICE;
+      const chosenVoice = voice || defaultVoice;
       const chosenFormat = format || "mp3";
 
       // Resolve the destination path.
@@ -121,13 +121,15 @@ function doExecuteCall() {
           voice: chosenVoice,
           outputPath: target,
           format: chosenFormat,
+          rate,
         });
         return {
           content: [
             {
               type: "text",
               text: `Audio written to: ${written}\n` +
-                `Voice: ${chosenVoice} | Format: ${chosenFormat}`,
+                `Voice: ${chosenVoice} | Format: ${chosenFormat}` +
+                (rate ? ` | Rate: ${rate}` : ""),
             },
           ],
         };
@@ -168,6 +170,14 @@ server.registerTool(
         .enum(["mp3", "wav"])
         .optional()
         .describe("Audio container. Defaults to mp3."),
+      rate: z
+        .string()
+        .optional()
+        .describe(
+          "Speaking rate (Azure prosody rate). Accepts a percentage relative " +
+            'to the default speed, e.g. "+20%" (faster) or "-30%" (slower), ' +
+            'or a multiplier like "1.5" or "0.8". Omit for normal speed.'
+        ),
       outputPath: z
         .string()
         .optional()
@@ -177,7 +187,7 @@ server.registerTool(
         ),
     },
   },
-  doExecuteCall()
+  doExecuteCall(ES_DEFAULT_VOICE)
 );
 
 server.registerTool(
@@ -203,6 +213,14 @@ server.registerTool(
         .enum(["mp3", "wav"])
         .optional()
         .describe("Audio container. Defaults to mp3."),
+      rate: z
+        .string()
+        .optional()
+        .describe(
+          "Speaking rate (Azure prosody rate). Accepts a percentage relative " +
+            'to the default speed, e.g. "+20%" (faster) or "-30%" (slower), ' +
+            'or a multiplier like "1.5" or "0.8". Omit for normal speed.'
+        ),
       outputPath: z
         .string()
         .optional()
@@ -212,7 +230,7 @@ server.registerTool(
         ),
     },
   },
-  doExecuteCall()
+  doExecuteCall(TH_DEFAULT_VOICE)
 );
 
 // --- Start -----------------------------------------------------------------
